@@ -35,7 +35,7 @@ func main() {
 	applicationRepo := postgres.NewApplicationRepository(db)
 
 	// Initialize services
-	userService := service.NewUserService(userRepo)
+	userService := service.NewUserService(userRepo, cfg.JWTSecret)
 	jobService := service.NewJobService(jobRepo)
 	applicationService := service.NewApplicationService(applicationRepo)
 

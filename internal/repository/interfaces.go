@@ -22,3 +22,12 @@ type UserRepository interface {
 	GetByID(ctx context.Context, id uuid.UUID) (*domain.User, error)
 	GetByEmail(ctx context.Context, email string) (*domain.User, error)
 }
+
+
+type ApplicationRepository interface {
+	Create(ctx context.Context, application *domain.Application) error
+	Update(ctx context.Context, application *domain.Application) error
+	Delete(ctx context.Context, id uuid.UUID) error
+	GetByID(ctx context.Context, id uuid.UUID) (*domain.Application, error)
+	List(ctx context.Context, filter domain.ApplicationFilter) ([]domain.Application, int, error)
+}

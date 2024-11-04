@@ -107,43 +107,38 @@ func (r *JobRepository) List(ctx context.Context, filter domain.JobFilter) ([]do
 
 	countQuery := "SELECT COUNT(*) FROM jobs WHERE 1=1"
 	args := []interface{}{}
-	argPosition := 1
 
 	// Add filters
 	if filter.Location != nil {
-		query += ` AND location = $` + string(argPosition)
-		countQuery += ` AND location = $` + string(argPosition)
+		query += " AND location = ?"
+		countQuery += " AND location = ?"
 		args = append(args, *filter.Location)
-		argPosition++
 	}
 	if filter.JobType != nil {
-		query += ` AND job_type = $` + string(argPosition)
-		countQuery += ` AND job_type = $` + string(argPosition)
+		query += " AND job_type = ?"
+		countQuery += " AND job_type = ?"
 		args = append(args, *filter.JobType)
-		argPosition++
 	}
 	if filter.ExperienceLevel != nil {
-		query += ` AND experience_level = $` + string(argPosition)
-		countQuery += ` AND experience_level = $` + string(argPosition)
+		query += " AND experience_level = ?"
+		countQuery += " AND experience_level = ?"
 		args = append(args, *filter.ExperienceLevel)
-		argPosition++
 	}
 	if len(filter.Skills) > 0 {
-		query += ` AND skills && $` + string(argPosition)
-		countQuery += ` AND skills && $` + string(argPosition)
+		query += " AND skills && ?"
+		countQuery += " AND skills && ?"
 		args = append(args, pq.Array(filter.Skills))
-		argPosition++
 	}
 
 	// Add pagination
 	limit := filter.PageSize
 	offset := (filter.Page - 1) * filter.PageSize
-	query += ` LIMIT $` + string(argPosition) + ` OFFSET $` + string(argPosition+1)
+	query += " LIMIT ? OFFSET ?"
 	args = append(args, limit, offset)
 
 	// Get total count
 	var total int
-	err := r.db.QueryRowContext(ctx, countQuery, args[:argPosition-1]...).Scan(&total)
+	err := r.db.QueryRowContext(ctx, countQuery, args[:len(args)-2]...).Scan(&total)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -179,4 +174,14 @@ func (r *JobRepository) List(ctx context.Context, filter domain.JobFilter) ([]do
 	}
 
 	return jobs, total, nil
+}
+
+func (r *JobRepository) Delete(ctx context.Context, id uuid.UUID) error {
+	query := `
+        DELETE FROM jobs
+        WHERE id = $1
+    `
+
+	_, err := r.db.ExecContext(ctx, query, id)
+	return err
 }

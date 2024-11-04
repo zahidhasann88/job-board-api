@@ -11,6 +11,8 @@ type Config struct {
 	Port            string
 	JWTSecret       string
 	FileStoragePath string
+	RecruiterRole   string
+	JobSeekerRole   string
 }
 
 func LoadConfig() (*Config, error) {
@@ -21,6 +23,8 @@ func LoadConfig() (*Config, error) {
 		Port:            getEnv("PORT", "8080"),
 		JWTSecret:       getEnv("JWT_SECRET", "your-secret-key"),
 		FileStoragePath: getEnv("FILE_STORAGE_PATH", "./uploads"),
+		RecruiterRole:   getEnv("RECRUITER_ROLE", "recruiter"),
+		JobSeekerRole:   getEnv("JOB_SEEKER_ROLE", "job_seeker"),
 	}
 
 	return config, nil

@@ -16,3 +16,11 @@ type Application struct {
 	CreatedAt   time.Time `json:"created_at"`
 	UpdatedAt   time.Time `json:"updated_at"`
 }
+
+type ApplicationFilter struct {
+	JobID       *uuid.UUID
+	ApplicantID *uuid.UUID
+	Status      *string
+	Page        int
+	PageSize    int
+}
