@@ -5,14 +5,14 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/zahidhasann88/job-board-api/internal/domain"
-	"github.com/zahidhasann88/job-board-api/internal/repository"
+	"github.com/zahidhasann88/job-board-api/internal/repository/postgres"
 )
 
 type ApplicationService struct {
-	applicationRepo repository.ApplicationRepository
+	applicationRepo *postgres.ApplicationRepository
 }
 
-func NewApplicationService(applicationRepo repository.ApplicationRepository) *ApplicationService {
+func NewApplicationService(applicationRepo *postgres.ApplicationRepository) *ApplicationService {
 	return &ApplicationService{applicationRepo: applicationRepo}
 }
 

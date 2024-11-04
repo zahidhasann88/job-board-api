@@ -54,22 +54,21 @@ func (s *Server) setupRouter() {
 	{
 		// Recruiter routes
 		recruiter := auth.Group("")
-		recruiter.Use(middleware.RequireRole("recruiter"))
+		recruiter.Use(middleware.RequireRole(s.config.RecruiterRole))
 		{
 			recruiter.POST("/jobs", s.jobHandler.Create)
 			recruiter.PUT("/jobs/:id", s.jobHandler.Update)
+			recruiter.PUT("/users/profile", s.userHandler.UpdateProfile)
 		}
 
 		// Job seeker routes
 		jobSeeker := auth.Group("")
-		jobSeeker.Use(middleware.RequireRole("job_seeker"))
+		jobSeeker.Use(middleware.RequireRole(s.config.JobSeekerRole))
 		{
 			jobSeeker.POST("/applications", s.applicationHandler.Create)
 			jobSeeker.GET("/applications", s.applicationHandler.List)
+			jobSeeker.PUT("/users/profile", s.userHandler.UpdateProfile)
 		}
-
-		// Common authenticated routes
-		auth.PUT("/users/profile", s.userHandler.UpdateProfile)
 	}
 }
 

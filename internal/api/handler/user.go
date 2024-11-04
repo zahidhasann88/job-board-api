@@ -1,12 +1,11 @@
 package handler
 
 import (
-	"net/http"
-
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/zahidhasann88/job-board-api/internal/domain"
 	"github.com/zahidhasann88/job-board-api/internal/service"
+	"net/http"
 )
 
 type UserHandler struct {
@@ -15,14 +14,6 @@ type UserHandler struct {
 
 func NewUserHandler(userService *service.UserService) *UserHandler {
 	return &UserHandler{userService: userService}
-}
-
-type RegisterRequest struct {
-	Email       string          `json:"email" binding:"required,email"`
-	Password    string          `json:"password" binding:"required,min=6"`
-	Role        domain.UserRole `json:"role" binding:"required"`
-	FullName    string          `json:"full_name" binding:"required"`
-	CompanyName *string         `json:"company_name"`
 }
 
 type LoginRequest struct {
@@ -34,6 +25,14 @@ type UpdateProfileRequest struct {
 	FullName    string  `json:"full_name"`
 	CompanyName *string `json:"company_name,omitempty"`
 	ResumeURL   *string `json:"resume_url,omitempty"`
+}
+
+type RegisterRequest struct {
+	Email       string          `json:"email" binding:"required,email"`
+	Password    string          `json:"password" binding:"required,min=6"`
+	Role        domain.UserRole `json:"role" binding:"required"`
+	FullName    string          `json:"full_name" binding:"required"`
+	CompanyName *string         `json:"company_name"`
 }
 
 func (h *UserHandler) Login(c *gin.Context) {

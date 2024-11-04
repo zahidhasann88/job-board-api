@@ -2,6 +2,7 @@ package handler
 
 import (
 	"net/http"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -93,9 +94,12 @@ func (h *JobHandler) List(c *gin.Context) {
 	filter.Skills = c.QueryArray("skills")
 
 	// Parse pagination
-	filter.Page = 1
-	filter.PageSize = 10
-	// Add proper pagination parsing here
+	if pageStr := c.Query("page"); pageStr != "" {
+		filter.Page, _ = strconv.Atoi(pageStr)
+	}
+	if pageSizeStr := c.Query("page_size"); pageSizeStr != "" {
+		filter.PageSize, _ = strconv.Atoi(pageSizeStr)
+	}
 
 	jobs, total, err := h.jobService.ListJobs(c.Request.Context(), filter)
 	if err != nil {

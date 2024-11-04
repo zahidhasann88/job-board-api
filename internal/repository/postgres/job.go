@@ -1,9 +1,9 @@
-// internal/repository/postgres/job.go
 package postgres
 
 import (
 	"context"
 	"database/sql"
+
 	"github.com/google/uuid"
 	"github.com/lib/pq"
 	"github.com/zahidhasann88/job-board-api/internal/domain"
@@ -114,6 +114,24 @@ func (r *JobRepository) List(ctx context.Context, filter domain.JobFilter) ([]do
 		query += ` AND location = $` + string(argPosition)
 		countQuery += ` AND location = $` + string(argPosition)
 		args = append(args, *filter.Location)
+		argPosition++
+	}
+	if filter.JobType != nil {
+		query += ` AND job_type = $` + string(argPosition)
+		countQuery += ` AND job_type = $` + string(argPosition)
+		args = append(args, *filter.JobType)
+		argPosition++
+	}
+	if filter.ExperienceLevel != nil {
+		query += ` AND experience_level = $` + string(argPosition)
+		countQuery += ` AND experience_level = $` + string(argPosition)
+		args = append(args, *filter.ExperienceLevel)
+		argPosition++
+	}
+	if len(filter.Skills) > 0 {
+		query += ` AND skills && $` + string(argPosition)
+		countQuery += ` AND skills && $` + string(argPosition)
+		args = append(args, pq.Array(filter.Skills))
 		argPosition++
 	}
 
