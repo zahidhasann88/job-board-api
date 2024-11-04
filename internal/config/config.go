@@ -19,7 +19,7 @@ func LoadConfig() (*Config, error) {
 	godotenv.Load() // Load .env file if it exists
 
 	config := &Config{
-		DatabaseURL:     getEnv("DATABASE_URL", "postgres://postgres:postgres@localhost:5432/jobboard?sslmode=disable"),
+		DatabaseURL:     getEnv("DATABASE_URL", "postgres://postgres:admin123@localhost:5432/job_board?sslmode=disable"),
 		Port:            getEnv("PORT", "8080"),
 		JWTSecret:       getEnv("JWT_SECRET", "your-secret-key"),
 		FileStoragePath: getEnv("FILE_STORAGE_PATH", "./uploads"),

@@ -58,7 +58,7 @@ func (s *Server) setupRouter() {
 		{
 			recruiter.POST("/jobs", s.jobHandler.Create)
 			// recruiter.PUT("/jobs/:id", s.jobHandler.Update)
-			recruiter.PUT("/users/profile", s.userHandler.UpdateProfile)
+			// recruiter.PUT("/users/profile", s.userHandler.UpdateProfile)
 		}
 
 		// Job seeker routes
@@ -67,8 +67,10 @@ func (s *Server) setupRouter() {
 		{
 			jobSeeker.POST("/applications", s.applicationHandler.Create)
 			jobSeeker.GET("/applications", s.applicationHandler.List)
-			jobSeeker.PUT("/users/profile", s.userHandler.UpdateProfile)
 		}
+
+		// Common routes
+		auth.PUT("/users/profile", s.userHandler.UpdateProfile)
 	}
 }
 
