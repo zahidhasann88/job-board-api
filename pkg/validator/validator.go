@@ -1,4 +1,3 @@
-// pkg/validator/validator.go
 package validator
 
 import (
@@ -10,8 +9,25 @@ import (
 	"github.com/google/uuid"
 )
 
+// UserRole represents different user roles in the system
+type UserRole string
+
+const (
+	RoleAdmin     UserRole = "admin"
+	RoleRecruiter UserRole = "recruiter"
+	RoleApplicant UserRole = "applicant"
+)
+
+// ValidationContext contains additional context for validation
+type ValidationContext struct {
+	Role      UserRole
+	UserID    string
+	CompanyID string
+}
+
 type CustomValidator struct {
 	validator *validator.Validate
+	context   *ValidationContext // Store context in the validator
 }
 
 // ValidationError represents a validation error
@@ -34,6 +50,9 @@ func (ve ValidationErrors) Error() string {
 // NewValidator creates a new custom validator
 func NewValidator() *CustomValidator {
 	v := validator.New()
+	cv := &CustomValidator{
+		validator: v,
+	}
 
 	// Register custom validation functions
 	v.RegisterValidation("password", validatePassword)
@@ -45,13 +64,18 @@ func NewValidator() *CustomValidator {
 	v.RegisterValidation("url", validateURL)
 	v.RegisterValidation("salary_range", validateSalaryRange)
 
-	return &CustomValidator{
-		validator: v,
-	}
+	// Register role-based validation functions with closure to access context
+	v.RegisterValidation("admin_only", cv.validateAdminOnly)
+	v.RegisterValidation("recruiter_only", cv.validateRecruiterOnly)
+	v.RegisterValidation("same_user", cv.validateSameUser)
+	v.RegisterValidation("same_company", cv.validateSameCompany)
+
+	return cv
 }
 
-// Validate validates the input struct and returns ValidationErrors
+// Validate validates the input struct without role context
 func (cv *CustomValidator) Validate(i interface{}) error {
+	cv.context = nil // Clear any existing context
 	err := cv.validator.Struct(i)
 	if err == nil {
 		return nil
@@ -72,11 +96,37 @@ func (cv *CustomValidator) Validate(i interface{}) error {
 	return validationErrors
 }
 
-// Custom validation functions
+// ValidateWithRole validates the input struct with role context
+func (cv *CustomValidator) ValidateWithRole(i interface{}, ctx ValidationContext) error {
+	// Store context for use in validation functions
+	cv.context = &ctx
+
+	err := cv.validator.Struct(i)
+	if err == nil {
+		return nil
+	}
+
+	var validationErrors ValidationErrors
+
+	for _, err := range err.(validator.ValidationErrors) {
+		field := toSnakeCase(err.Field())
+		message := getRoleErrorMessage(err, ctx.Role)
+
+		validationErrors = append(validationErrors, ValidationError{
+			Field:   field,
+			Message: message,
+		})
+	}
+
+	// Clear context after validation
+	cv.context = nil
+
+	return validationErrors
+}
+
+// Existing validation functions remain the same
 func validatePassword(fl validator.FieldLevel) bool {
 	password := fl.Field().String()
-	// Password must be at least 8 characters long and contain at least:
-	// 1 uppercase letter, 1 lowercase letter, 1 number, and 1 special character
 	hasUpper := regexp.MustCompile(`[A-Z]`).MatchString(password)
 	hasLower := regexp.MustCompile(`[a-z]`).MatchString(password)
 	hasNumber := regexp.MustCompile(`[0-9]`).MatchString(password)
@@ -87,7 +137,6 @@ func validatePassword(fl validator.FieldLevel) bool {
 
 func validatePhone(fl validator.FieldLevel) bool {
 	phone := fl.Field().String()
-	// Basic phone number validation (can be customized based on your requirements)
 	match, _ := regexp.MatchString(`^\+?[1-9]\d{1,14}$`, phone)
 	return match
 }
@@ -140,9 +189,37 @@ func validateURL(fl validator.FieldLevel) bool {
 
 func validateSalaryRange(fl validator.FieldLevel) bool {
 	salaryRange := fl.Field().String()
-	// Matches patterns like "50000-75000" or "50k-75k" or "50K-75K"
 	match, _ := regexp.MatchString(`^\d+k?-\d+k?$`, strings.ToLower(salaryRange))
 	return match
+}
+
+// Role-based validation functions with receiver to access context
+func (cv *CustomValidator) validateAdminOnly(fl validator.FieldLevel) bool {
+	if cv.context == nil {
+		return true // If no context, skip role validation
+	}
+	return cv.context.Role == RoleAdmin
+}
+
+func (cv *CustomValidator) validateRecruiterOnly(fl validator.FieldLevel) bool {
+	if cv.context == nil {
+		return true // If no context, skip role validation
+	}
+	return cv.context.Role == RoleRecruiter || cv.context.Role == RoleAdmin
+}
+
+func (cv *CustomValidator) validateSameUser(fl validator.FieldLevel) bool {
+	if cv.context == nil {
+		return true // If no context, skip role validation
+	}
+	return fl.Field().String() == cv.context.UserID || cv.context.Role == RoleAdmin
+}
+
+func (cv *CustomValidator) validateSameCompany(fl validator.FieldLevel) bool {
+	if cv.context == nil {
+		return true // If no context, skip role validation
+	}
+	return fl.Field().String() == cv.context.CompanyID || cv.context.Role == RoleAdmin
 }
 
 // Helper functions
@@ -184,26 +261,45 @@ func getErrorMessage(err validator.FieldError) string {
 	}
 }
 
-// Example usage in request structs
-type CreateJobRequest struct {
-	Title           string   `json:"title" validate:"required,min=3,max=100"`
-	Description     string   `json:"description" validate:"required,min=10"`
-	Location        string   `json:"location" validate:"required"`
-	SalaryRange     string   `json:"salary_range" validate:"required,salary_range"`
-	JobType         string   `json:"job_type" validate:"required,job_type"`
-	ExperienceLevel string   `json:"experience_level" validate:"required,experience_level"`
-	Skills          []string `json:"skills" validate:"required,min=1,dive,required"`
+func getRoleErrorMessage(err validator.FieldError, role UserRole) string {
+	switch err.Tag() {
+	case "admin_only":
+		return "This field can only be modified by administrators"
+	case "recruiter_only":
+		return "This field can only be modified by recruiters or administrators"
+	case "same_user":
+		return "You can only modify your own information"
+	case "same_company":
+		return "You can only modify information for your own company"
+	default:
+		return getErrorMessage(err)
+	}
 }
 
-type ApplicationRequest struct {
+// Example structs showing usage
+type JobPosting struct {
+	ID              string `json:"id" validate:"required,uuid"`
+	Title           string `json:"title" validate:"required"`
+	CompanyID       string `json:"company_id" validate:"required,uuid,same_company"`
+	SalaryRange     string `json:"salary_range" validate:"required,salary_range,recruiter_only"`
+	FeaturedListing bool   `json:"featured_listing" validate:"admin_only"`
+	JobType         string `json:"job_type" validate:"required,job_type"`
+	ExperienceLevel string `json:"experience_level" validate:"required,experience_level"`
+}
+
+type UserProfile struct {
+	ID          string `json:"id" validate:"required,uuid,same_user"`
+	Name        string `json:"name" validate:"required"`
+	Email       string `json:"email" validate:"required,email"`
+	Role        string `json:"role" validate:"admin_only"`
+	PhoneNumber string `json:"phone_number" validate:"required,phone"`
+	Password    string `json:"password" validate:"required,password"`
+}
+
+type JobApplication struct {
+	ID          string `json:"id" validate:"required,uuid"`
 	JobID       string `json:"job_id" validate:"required,uuid"`
-	CoverLetter string `json:"cover_letter" validate:"required,min=50"`
+	ApplicantID string `json:"applicant_id" validate:"required,uuid,same_user"`
+	Status      string `json:"status" validate:"required,application_status,recruiter_only"`
 	ResumeURL   string `json:"resume_url" validate:"required,url"`
-}
-
-type UpdateProfileRequest struct {
-	FullName    string  `json:"full_name" validate:"required,min=2,max=100"`
-	Phone       string  `json:"phone" validate:"required,phone"`
-	CompanyName *string `json:"company_name,omitempty" validate:"omitempty,min=2,max=100"`
-	ResumeURL   *string `json:"resume_url,omitempty" validate:"omitempty,url"`
 }
