@@ -3,6 +3,7 @@ package postgres
 import (
 	"context"
 	"database/sql"
+	"fmt"
 
 	"github.com/google/uuid"
 	"github.com/lib/pq"
@@ -107,33 +108,38 @@ func (r *JobRepository) List(ctx context.Context, filter domain.JobFilter) ([]do
 
 	countQuery := "SELECT COUNT(*) FROM jobs WHERE 1=1"
 	args := []interface{}{}
+	paramCount := 1
 
 	// Add filters
 	if filter.Location != nil {
-		query += " AND location = ?"
-		countQuery += " AND location = ?"
+		query += fmt.Sprintf(" AND location = $%d", paramCount)
+		countQuery += fmt.Sprintf(" AND location = $%d", paramCount)
 		args = append(args, *filter.Location)
+		paramCount++
 	}
 	if filter.JobType != nil {
-		query += " AND job_type = ?"
-		countQuery += " AND job_type = ?"
+		query += fmt.Sprintf(" AND job_type = $%d", paramCount)
+		countQuery += fmt.Sprintf(" AND job_type = $%d", paramCount)
 		args = append(args, *filter.JobType)
+		paramCount++
 	}
 	if filter.ExperienceLevel != nil {
-		query += " AND experience_level = ?"
-		countQuery += " AND experience_level = ?"
+		query += fmt.Sprintf(" AND experience_level = $%d", paramCount)
+		countQuery += fmt.Sprintf(" AND experience_level = $%d", paramCount)
 		args = append(args, *filter.ExperienceLevel)
+		paramCount++
 	}
 	if len(filter.Skills) > 0 {
-		query += " AND skills && ?"
-		countQuery += " AND skills && ?"
+		query += fmt.Sprintf(" AND skills && $%d", paramCount)
+		countQuery += fmt.Sprintf(" AND skills && $%d", paramCount)
 		args = append(args, pq.Array(filter.Skills))
+		paramCount++
 	}
 
 	// Add pagination
 	limit := filter.PageSize
 	offset := (filter.Page - 1) * filter.PageSize
-	query += " LIMIT ? OFFSET ?"
+	query += fmt.Sprintf(" LIMIT $%d OFFSET $%d", paramCount, paramCount+1)
 	args = append(args, limit, offset)
 
 	// Get total count
