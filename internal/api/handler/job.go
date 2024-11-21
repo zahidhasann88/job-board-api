@@ -32,13 +32,22 @@ func (h *JobHandler) Create(c *gin.Context) {
 	}
 
 	// Get user role and context from authenticated user
-	userID, _ := c.Get("userID")
-	userRole, _ := c.Get("userRole")
+	userID, exists := c.Get("userID")
+	if !exists {
+		response.Error(c, http.StatusUnauthorized, "Unauthorized", "User ID not found")
+		return
+	}
+
+	userRole, exists := c.Get("userRole")
+	if !exists {
+		response.Error(c, http.StatusUnauthorized, "Unauthorized", "User role not found")
+		return
+	}
 
 	validationCtx := validator.ValidationContext{
 		Role:      validator.UserRole(userRole.(string)),
-		UserID:    userID.(string),
-		CompanyID: userID.(string),
+		UserID:    userID.(uuid.UUID).String(),
+		CompanyID: userID.(uuid.UUID).String(),
 	}
 
 	// Validate the request using custom validator
@@ -56,6 +65,7 @@ func (h *JobHandler) Create(c *gin.Context) {
 		JobType:         req.JobType,
 		ExperienceLevel: req.ExperienceLevel,
 		Skills:          req.Skills,
+		Status:          "active",
 	}
 
 	if err := h.jobService.CreateJob(c.Request.Context(), job); err != nil {
@@ -83,13 +93,22 @@ func (h *JobHandler) Update(c *gin.Context) {
 	}
 
 	// Get user role and context from authenticated user
-	userID, _ := c.Get("userID")
-	userRole, _ := c.Get("userRole")
+	userID, exists := c.Get("userID")
+	if !exists {
+		response.Error(c, http.StatusUnauthorized, "Unauthorized", "User ID not found")
+		return
+	}
+
+	userRole, exists := c.Get("userRole")
+	if !exists {
+		response.Error(c, http.StatusUnauthorized, "Unauthorized", "User role not found")
+		return
+	}
 
 	validationCtx := validator.ValidationContext{
 		Role:      validator.UserRole(userRole.(string)),
-		UserID:    userID.(string),
-		CompanyID: userID.(string),
+		UserID:    userID.(uuid.UUID).String(),
+		CompanyID: userID.(uuid.UUID).String(),
 	}
 
 	// Validate the request using custom validator
@@ -180,6 +199,13 @@ func (h *JobHandler) List(c *gin.Context) {
 		filter.PageSize, _ = strconv.Atoi(pageSizeStr)
 	}
 
+	if filter.Page < 1 {
+		filter.Page = 1
+	}
+	if filter.PageSize < 1 {
+		filter.PageSize = 10
+	}
+
 	jobs, total, err := h.jobService.ListJobs(c.Request.Context(), filter)
 	if err != nil {
 		response.Error(c, http.StatusInternalServerError, "Failed to list jobs", err.Error())
@@ -194,4 +220,97 @@ func (h *JobHandler) List(c *gin.Context) {
 	}
 
 	response.SuccessWithMeta(c, http.StatusOK, "Jobs retrieved successfully", jobs, meta)
+}
+
+func (h *JobHandler) ChangeStatus(c *gin.Context) {
+	// Parse job ID from URL
+	idStr := c.Param("id")
+	id, err := uuid.Parse(idStr)
+	if err != nil {
+		response.Error(c, http.StatusBadRequest, "Invalid job ID", err.Error())
+		return
+	}
+
+	// Parse status from request body
+	var req struct {
+		Status string `json:"status" binding:"required"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.Error(c, http.StatusBadRequest, "Invalid request", err.Error())
+		return
+	}
+
+	// Get user context
+	userID, exists := c.Get("userID")
+	if !exists {
+		response.Error(c, http.StatusUnauthorized, "Unauthorized", "User ID not found")
+		return
+	}
+
+	// Fetch existing job to verify ownership
+	existingJob, err := h.jobService.GetJob(c.Request.Context(), id)
+	if err != nil {
+		response.Error(c, http.StatusInternalServerError, "Failed to fetch job", err.Error())
+		return
+	}
+	if existingJob == nil {
+		response.Error(c, http.StatusNotFound, "Job not found", "")
+		return
+	}
+
+	// Verify job belongs to current user
+	if existingJob.CompanyID != userID {
+		response.Error(c, http.StatusForbidden, "Unauthorized", "Not allowed to change job status")
+		return
+	}
+
+	// Change job status
+	if err := h.jobService.ChangeJobStatus(c.Request.Context(), id, req.Status); err != nil {
+		response.Error(c, http.StatusInternalServerError, "Failed to change job status", err.Error())
+		return
+	}
+
+	response.Success(c, http.StatusOK, "Job status updated successfully", nil)
+}
+
+func (h *JobHandler) CompleteDelete(c *gin.Context) {
+	// Parse job ID from URL
+	idStr := c.Param("id")
+	id, err := uuid.Parse(idStr)
+	if err != nil {
+		response.Error(c, http.StatusBadRequest, "Invalid job ID", err.Error())
+		return
+	}
+
+	// Get user context
+	userID, exists := c.Get("userID")
+	if !exists {
+		response.Error(c, http.StatusUnauthorized, "Unauthorized", "User ID not found")
+		return
+	}
+
+	// Fetch existing job to verify ownership
+	existingJob, err := h.jobService.GetJob(c.Request.Context(), id)
+	if err != nil {
+		response.Error(c, http.StatusInternalServerError, "Failed to fetch job", err.Error())
+		return
+	}
+	if existingJob == nil {
+		response.Error(c, http.StatusNotFound, "Job not found", "")
+		return
+	}
+
+	// Verify job belongs to current user
+	if existingJob.CompanyID != userID {
+		response.Error(c, http.StatusForbidden, "Unauthorized", "Not allowed to delete this job")
+		return
+	}
+
+	// Complete delete job and its applications
+	if err := h.jobService.CompleteDeleteJob(c.Request.Context(), id); err != nil {
+		response.Error(c, http.StatusInternalServerError, "Failed to delete job", err.Error())
+		return
+	}
+
+	response.Success(c, http.StatusOK, "Job completely deleted successfully", nil)
 }

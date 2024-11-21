@@ -182,12 +182,26 @@ func (r *JobRepository) List(ctx context.Context, filter domain.JobFilter) ([]do
 	return jobs, total, nil
 }
 
-func (r *JobRepository) Delete(ctx context.Context, id uuid.UUID) error {
+func (r *JobRepository) ChangeJobStatus(ctx context.Context, id uuid.UUID, status string) error {
 	query := `
-        DELETE FROM jobs
-        WHERE id = $1
-    `
+        UPDATE jobs 
+        SET status = $1, updated_at = CURRENT_TIMESTAMP
+        WHERE id = $2`
 
-	_, err := r.db.ExecContext(ctx, query, id)
+	_, err := r.db.ExecContext(ctx, query, status, id)
+	return err
+}
+
+func (r *JobRepository) Delete(ctx context.Context, id uuid.UUID) error {
+	// Delete associated applications first (assuming you have a foreign key constraint)
+	appQuery := `DELETE FROM applications WHERE job_id = $1`
+	_, err := r.db.ExecContext(ctx, appQuery, id)
+	if err != nil {
+		return err
+	}
+
+	// Then delete the job
+	jobQuery := `DELETE FROM jobs WHERE id = $1`
+	_, err = r.db.ExecContext(ctx, jobQuery, id)
 	return err
 }

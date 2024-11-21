@@ -58,6 +58,8 @@ func (s *Server) setupRouter() {
 		{
 			recruiter.POST("/jobs", s.jobHandler.Create)
 			recruiter.PUT("/jobs/:id", s.jobHandler.Update)
+			recruiter.PATCH("/jobs/:id/status", s.jobHandler.ChangeStatus)
+			recruiter.DELETE("/jobs/:id", s.jobHandler.CompleteDelete)
 		}
 
 		// Job seeker routes

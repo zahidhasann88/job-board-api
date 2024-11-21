@@ -13,6 +13,7 @@ type JobRepository interface {
 	Delete(ctx context.Context, id uuid.UUID) error
 	GetByID(ctx context.Context, id uuid.UUID) (*domain.Job, error)
 	List(ctx context.Context, filter domain.JobFilter) ([]domain.Job, int, error)
+	ChangeJobStatus(ctx context.Context, id uuid.UUID, status string) error
 }
 
 type UserRepository interface {
@@ -22,7 +23,6 @@ type UserRepository interface {
 	GetByID(ctx context.Context, id uuid.UUID) (*domain.User, error)
 	GetByEmail(ctx context.Context, email string) (*domain.User, error)
 }
-
 
 type ApplicationRepository interface {
 	Create(ctx context.Context, application *domain.Application) error
