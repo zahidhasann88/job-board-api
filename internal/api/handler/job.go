@@ -28,6 +28,17 @@ type CreateJobRequest struct {
 	Skills          []string `json:"skills" binding:"required"`
 }
 
+type UpdateJobRequest struct {
+	Title           string   `json:"title"`
+	Description     string   `json:"description"`
+	Location        string   `json:"location"`
+	SalaryRange     *string  `json:"salary_range"`
+	JobType         string   `json:"job_type"`
+	ExperienceLevel string   `json:"experience_level"`
+	Skills          []string `json:"skills"`
+	Status          string   `json:"status"`
+}
+
 func (h *JobHandler) Create(c *gin.Context) {
 	var req CreateJobRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -56,6 +67,64 @@ func (h *JobHandler) Create(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusCreated, job)
+}
+
+func (h *JobHandler) Update(c *gin.Context) {
+	// Parse job ID from URL
+	idStr := c.Param("id")
+	id, err := uuid.Parse(idStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid job ID"})
+		return
+	}
+
+	// Parse request body
+	var req UpdateJobRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Get current user ID (for verification)
+	userID, _ := c.Get("userID")
+
+	// Fetch existing job to verify ownership
+	existingJob, err := h.jobService.GetJob(c.Request.Context(), id)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	if existingJob == nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "job not found"})
+		return
+	}
+
+	// Verify job belongs to current user
+	if existingJob.CompanyID != userID {
+		c.JSON(http.StatusForbidden, gin.H{"error": "unauthorized to update this job"})
+		return
+	}
+
+	// Update job fields
+	job := &domain.Job{
+		ID:              id,
+		Title:           req.Title,
+		Description:     req.Description,
+		Location:        req.Location,
+		SalaryRange:     req.SalaryRange,
+		JobType:         req.JobType,
+		ExperienceLevel: req.ExperienceLevel,
+		Skills:          req.Skills,
+		Status:          req.Status,
+	}
+
+	// Perform update
+	if err := h.jobService.UpdateJob(c.Request.Context(), job); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, job)
 }
 
 func (h *JobHandler) Get(c *gin.Context) {

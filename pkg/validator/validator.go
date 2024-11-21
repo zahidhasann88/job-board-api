@@ -15,7 +15,7 @@ type UserRole string
 const (
 	RoleAdmin     UserRole = "admin"
 	RoleRecruiter UserRole = "recruiter"
-	RoleApplicant UserRole = "applicant"
+	RoleApplicant UserRole = "job_seeker"
 )
 
 // ValidationContext contains additional context for validation

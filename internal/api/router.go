@@ -57,8 +57,7 @@ func (s *Server) setupRouter() {
 		recruiter.Use(middleware.RequireRole(s.config.RecruiterRole))
 		{
 			recruiter.POST("/jobs", s.jobHandler.Create)
-			// recruiter.PUT("/jobs/:id", s.jobHandler.Update)
-			// recruiter.PUT("/users/profile", s.userHandler.UpdateProfile)
+			recruiter.PUT("/jobs/:id", s.jobHandler.Update)
 		}
 
 		// Job seeker routes
