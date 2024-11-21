@@ -314,3 +314,59 @@ func (h *JobHandler) CompleteDelete(c *gin.Context) {
 
 	response.Success(c, http.StatusOK, "Job completely deleted successfully", nil)
 }
+
+func (h *JobHandler) GetJobAnalytics(c *gin.Context) {
+    userID, _ := c.Get("userID")
+    companyID := userID.(uuid.UUID)
+
+    analytics, err := h.jobService.GetJobAnalytics(c.Request.Context(), companyID)
+    if err != nil {
+        response.Error(c, http.StatusInternalServerError, "Failed to fetch job analytics", err.Error())
+        return
+    }
+
+    response.Success(c, http.StatusOK, "Job analytics retrieved", analytics)
+}
+
+func (h *JobHandler) BulkCreateJobs(c *gin.Context) {
+    var jobs []domain.CreateJobRequest
+    if err := c.ShouldBindJSON(&jobs); err != nil {
+        response.Error(c, http.StatusBadRequest, "Invalid request", err.Error())
+        return
+    }
+
+    userID, _ := c.Get("userID")
+    createdJobs, err := h.jobService.BulkCreateJobs(c.Request.Context(), jobs, userID.(uuid.UUID))
+    if err != nil {
+        response.Error(c, http.StatusInternalServerError, "Failed to create jobs", err.Error())
+        return
+    }
+
+    response.Success(c, http.StatusCreated, "Jobs created successfully", createdJobs)
+}
+
+func (h *JobHandler) GetJobApplicationInsights(c *gin.Context) {
+    idStr := c.Param("id")
+    jobID, _ := uuid.Parse(idStr)
+
+    insights, err := h.jobService.GetJobApplicationInsights(c.Request.Context(), jobID)
+    if err != nil {
+        response.Error(c, http.StatusInternalServerError, "Failed to fetch application insights", err.Error())
+        return
+    }
+
+    response.Success(c, http.StatusOK, "Job application insights retrieved", insights)
+}
+
+func (h *JobHandler) GetRecommendedCandidates(c *gin.Context) {
+    idStr := c.Param("id")
+    jobID, _ := uuid.Parse(idStr)
+
+    candidates, err := h.jobService.GetRecommendedCandidates(c.Request.Context(), jobID)
+    if err != nil {
+        response.Error(c, http.StatusInternalServerError, "Failed to fetch recommended candidates", err.Error())
+        return
+    }
+
+    response.Success(c, http.StatusOK, "Recommended candidates retrieved", candidates)
+}

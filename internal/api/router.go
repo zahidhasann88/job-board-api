@@ -60,6 +60,10 @@ func (s *Server) setupRouter() {
 			recruiter.PUT("/jobs/:id", s.jobHandler.Update)
 			recruiter.PATCH("/jobs/:id/status", s.jobHandler.ChangeStatus)
 			recruiter.DELETE("/jobs/:id", s.jobHandler.CompleteDelete)
+			recruiter.GET("/jobs/analytics", s.jobHandler.GetJobAnalytics)
+			recruiter.POST("/jobs/bulk", s.jobHandler.BulkCreateJobs)
+			recruiter.GET("/jobs/:id/application-insights", s.jobHandler.GetJobApplicationInsights)
+			recruiter.GET("/jobs/:id/recommended-candidates", s.jobHandler.GetRecommendedCandidates)
 		}
 
 		// Job seeker routes
