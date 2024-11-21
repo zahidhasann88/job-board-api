@@ -8,52 +8,49 @@ import (
 	"github.com/google/uuid"
 	"github.com/zahidhasann88/job-board-api/internal/domain"
 	"github.com/zahidhasann88/job-board-api/internal/service"
+	"github.com/zahidhasann88/job-board-api/pkg/response"
+	"github.com/zahidhasann88/job-board-api/pkg/validator"
 )
 
 type JobHandler struct {
-	jobService *service.JobService
+	jobService      *service.JobService
+	customValidator *validator.CustomValidator
 }
 
 func NewJobHandler(jobService *service.JobService) *JobHandler {
-	return &JobHandler{jobService: jobService}
-}
-
-type CreateJobRequest struct {
-	Title           string   `json:"title" binding:"required"`
-	Description     string   `json:"description" binding:"required"`
-	Location        string   `json:"location" binding:"required"`
-	SalaryRange     *string  `json:"salary_range"`
-	JobType         string   `json:"job_type" binding:"required"`
-	ExperienceLevel string   `json:"experience_level" binding:"required"`
-	Skills          []string `json:"skills" binding:"required"`
-}
-
-type UpdateJobRequest struct {
-	Title           string   `json:"title"`
-	Description     string   `json:"description"`
-	Location        string   `json:"location"`
-	SalaryRange     *string  `json:"salary_range"`
-	JobType         string   `json:"job_type"`
-	ExperienceLevel string   `json:"experience_level"`
-	Skills          []string `json:"skills"`
-	Status          string   `json:"status"`
+	return &JobHandler{
+		jobService:      jobService,
+		customValidator: validator.NewValidator(),
+	}
 }
 
 func (h *JobHandler) Create(c *gin.Context) {
-	var req CreateJobRequest
+	var req domain.CreateJobRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		response.Error(c, http.StatusBadRequest, "Invalid request", err.Error())
 		return
 	}
 
-	// Get company ID from authenticated user
+	// Get user role and context from authenticated user
 	userID, _ := c.Get("userID")
-	companyID := userID.(uuid.UUID)
+	userRole, _ := c.Get("userRole")
+
+	validationCtx := validator.ValidationContext{
+		Role:      validator.UserRole(userRole.(string)),
+		UserID:    userID.(string),
+		CompanyID: userID.(string),
+	}
+
+	// Validate the request using custom validator
+	if err := h.customValidator.ValidateWithRole(req, validationCtx); err != nil {
+		response.Error(c, http.StatusBadRequest, "Validation failed", err.Error())
+		return
+	}
 
 	job := &domain.Job{
 		Title:           req.Title,
 		Description:     req.Description,
-		CompanyID:       companyID,
+		CompanyID:       userID.(uuid.UUID),
 		Location:        req.Location,
 		SalaryRange:     req.SalaryRange,
 		JobType:         req.JobType,
@@ -62,11 +59,11 @@ func (h *JobHandler) Create(c *gin.Context) {
 	}
 
 	if err := h.jobService.CreateJob(c.Request.Context(), job); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		response.Error(c, http.StatusInternalServerError, "Failed to create job", err.Error())
 		return
 	}
 
-	c.JSON(http.StatusCreated, job)
+	response.Success(c, http.StatusCreated, "Job created successfully", job)
 }
 
 func (h *JobHandler) Update(c *gin.Context) {
@@ -74,34 +71,47 @@ func (h *JobHandler) Update(c *gin.Context) {
 	idStr := c.Param("id")
 	id, err := uuid.Parse(idStr)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid job ID"})
+		response.Error(c, http.StatusBadRequest, "Invalid job ID", err.Error())
 		return
 	}
 
 	// Parse request body
-	var req UpdateJobRequest
+	var req domain.UpdateJobRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		response.Error(c, http.StatusBadRequest, "Invalid request", err.Error())
 		return
 	}
 
-	// Get current user ID (for verification)
+	// Get user role and context from authenticated user
 	userID, _ := c.Get("userID")
+	userRole, _ := c.Get("userRole")
+
+	validationCtx := validator.ValidationContext{
+		Role:      validator.UserRole(userRole.(string)),
+		UserID:    userID.(string),
+		CompanyID: userID.(string),
+	}
+
+	// Validate the request using custom validator
+	if err := h.customValidator.ValidateWithRole(req, validationCtx); err != nil {
+		response.Error(c, http.StatusBadRequest, "Validation failed", err.Error())
+		return
+	}
 
 	// Fetch existing job to verify ownership
 	existingJob, err := h.jobService.GetJob(c.Request.Context(), id)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		response.Error(c, http.StatusInternalServerError, "Failed to fetch job", err.Error())
 		return
 	}
 	if existingJob == nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "job not found"})
+		response.Error(c, http.StatusNotFound, "Job not found", "")
 		return
 	}
 
 	// Verify job belongs to current user
 	if existingJob.CompanyID != userID {
-		c.JSON(http.StatusForbidden, gin.H{"error": "unauthorized to update this job"})
+		response.Error(c, http.StatusForbidden, "Unauthorized", "Not allowed to update this job")
 		return
 	}
 
@@ -120,32 +130,32 @@ func (h *JobHandler) Update(c *gin.Context) {
 
 	// Perform update
 	if err := h.jobService.UpdateJob(c.Request.Context(), job); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		response.Error(c, http.StatusInternalServerError, "Failed to update job", err.Error())
 		return
 	}
 
-	c.JSON(http.StatusOK, job)
+	response.Success(c, http.StatusOK, "Job updated successfully", job)
 }
 
 func (h *JobHandler) Get(c *gin.Context) {
 	idStr := c.Param("id")
 	id, err := uuid.Parse(idStr)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid job ID"})
+		response.Error(c, http.StatusBadRequest, "Invalid job ID", err.Error())
 		return
 	}
 
 	job, err := h.jobService.GetJob(c.Request.Context(), id)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		response.Error(c, http.StatusInternalServerError, "Failed to fetch job", err.Error())
 		return
 	}
 	if job == nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "job not found"})
+		response.Error(c, http.StatusNotFound, "Job not found", "")
 		return
 	}
 
-	c.JSON(http.StatusOK, job)
+	response.Success(c, http.StatusOK, "Job retrieved successfully", job)
 }
 
 func (h *JobHandler) List(c *gin.Context) {
@@ -172,14 +182,16 @@ func (h *JobHandler) List(c *gin.Context) {
 
 	jobs, total, err := h.jobService.ListJobs(c.Request.Context(), filter)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		response.Error(c, http.StatusInternalServerError, "Failed to list jobs", err.Error())
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"data":      jobs,
-		"total":     total,
-		"page":      filter.Page,
-		"page_size": filter.PageSize,
-	})
+	meta := response.Meta{
+		Total:     total,
+		Page:      filter.Page,
+		PageSize:  filter.PageSize,
+		TotalPage: (total + filter.PageSize - 1) / filter.PageSize,
+	}
+
+	response.SuccessWithMeta(c, http.StatusOK, "Jobs retrieved successfully", jobs, meta)
 }
