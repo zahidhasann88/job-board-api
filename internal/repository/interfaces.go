@@ -26,6 +26,20 @@ type UserRepository interface {
 	Delete(ctx context.Context, id uuid.UUID) error
 	GetByID(ctx context.Context, id uuid.UUID) (*domain.User, error)
 	GetByEmail(ctx context.Context, email string) (*domain.User, error)
+
+	// UpdateSkills(ctx context.Context, userID uuid.UUID, skills []string) error
+	// UpdateExperience(ctx context.Context, userID uuid.UUID, experience string) error
+	// UpdateEducation(ctx context.Context, userID uuid.UUID, education string) error
+	// UpdateBio(ctx context.Context, userID uuid.UUID, bio string) error
+	// UpdateProfilePicture(ctx context.Context, userID uuid.UUID, url string) error
+	// UpdateResume(ctx context.Context, userID uuid.UUID, url string) error
+	// UpdateLocation(ctx context.Context, userID uuid.UUID, location string) error
+	// UpdateSocialLinks(ctx context.Context, userID uuid.UUID, links domain.SocialLinks) error
+	// UpdateContactInfo(ctx context.Context, userID uuid.UUID, contactInfo domain.ContactInfo) error
+	// UpdateEmploymentHistory(ctx context.Context, userID uuid.UUID, employmentHistory []domain.EmploymentHistory) error
+	// UpdateEducationHistory(ctx context.Context, userID uuid.UUID, educationHistory []domain.EducationHistory) error
+	// UpdateCertifications(ctx context.Context, userID uuid.UUID, certifications []domain.Certification) error
+	// GetUserAnalytics(ctx context.Context, userID uuid.UUID) (*domain.UserAnalytics, error)
 }
 
 type ApplicationRepository interface {
@@ -34,4 +48,7 @@ type ApplicationRepository interface {
 	Delete(ctx context.Context, id uuid.UUID) error
 	GetByID(ctx context.Context, id uuid.UUID) (*domain.Application, error)
 	List(ctx context.Context, filter domain.ApplicationFilter) ([]domain.Application, int, error)
+
+	// GetApplicationsByJob(ctx context.Context, jobID uuid.UUID) ([]domain.Application, error)
+	// GetApplicationsByUser(ctx context.Context, userID uuid.UUID) ([]domain.Application, error)
 }
