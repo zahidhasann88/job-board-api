@@ -14,6 +14,10 @@ type JobRepository interface {
 	GetByID(ctx context.Context, id uuid.UUID) (*domain.Job, error)
 	List(ctx context.Context, filter domain.JobFilter) ([]domain.Job, int, error)
 	ChangeJobStatus(ctx context.Context, id uuid.UUID, status string) error
+	GetJobAnalytics(ctx context.Context, companyID uuid.UUID) (*domain.JobAnalytics, error)
+	GetApplicationInsights(ctx context.Context, jobID uuid.UUID) (*domain.JobApplicationInsights, error)
+	BulkCreate(ctx context.Context, jobs []domain.Job) error
+	GetRecommendedCandidates(ctx context.Context, jobID uuid.UUID) ([]domain.RecommendedCandidate, error)
 }
 
 type UserRepository interface {

@@ -62,3 +62,39 @@ func contains(slice []string, str string) bool {
 	}
 	return false
 }
+
+func (s *JobService) GetJobAnalytics(ctx context.Context, companyID uuid.UUID) (*domain.JobAnalytics, error) {
+	return s.jobRepo.GetJobAnalytics(ctx, companyID)
+}
+
+func (s *JobService) BulkCreateJobs(ctx context.Context, requests []domain.CreateJobRequest, companyID uuid.UUID) ([]domain.Job, error) {
+	jobs := make([]domain.Job, len(requests))
+	for i, req := range requests {
+		jobs[i] = domain.Job{
+			ID:              uuid.New(),
+			Title:           req.Title,
+			Description:     req.Description,
+			CompanyID:       companyID,
+			Location:        req.Location,
+			SalaryRange:     req.SalaryRange,
+			JobType:         req.JobType,
+			ExperienceLevel: req.ExperienceLevel,
+			Skills:          req.Skills,
+			Status:          "active",
+		}
+	}
+
+	if err := s.jobRepo.BulkCreate(ctx, jobs); err != nil {
+		return nil, err
+	}
+
+	return jobs, nil
+}
+
+func (s *JobService) GetJobApplicationInsights(ctx context.Context, jobID uuid.UUID) (*domain.JobApplicationInsights, error) {
+	return s.jobRepo.GetApplicationInsights(ctx, jobID)
+}
+
+func (s *JobService) GetRecommendedCandidates(ctx context.Context, jobID uuid.UUID) ([]domain.RecommendedCandidate, error) {
+	return s.jobRepo.GetRecommendedCandidates(ctx, jobID)
+}

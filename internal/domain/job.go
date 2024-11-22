@@ -51,3 +51,29 @@ type UpdateJobRequest struct {
 	Skills          []string `json:"skills"`
 	Status          string   `json:"status"`
 }
+
+type JobAnalytics struct {
+    ActiveJobs             int            `json:"active_jobs"`
+    TotalApplications      int            `json:"total_applications"`
+    ApplicationsByStatus   map[string]int `json:"applications_by_status"`
+}
+
+type JobApplicationInsights struct {
+    JobID                  uuid.UUID `json:"job_id"`
+    TotalApplications      int       `json:"total_applications"`
+    PendingApplications    int       `json:"pending_applications"`
+    ReviewedApplications   int       `json:"reviewed_applications"`
+    InterviewedApplications int      `json:"interviewed_applications"`
+    AcceptedApplications   int       `json:"accepted_applications"`
+    RejectedApplications   int       `json:"rejected_applications"`
+    AverageExperience     float64   `json:"average_experience"`
+}
+
+type RecommendedCandidate struct {
+    UserID              uuid.UUID `json:"user_id"`
+    Name                string    `json:"name"`
+    Email               string    `json:"email"`
+    YearsOfExperience   int       `json:"years_of_experience"`
+    Skills              []string  `json:"skills"`
+    SkillMatchPercentage float64  `json:"skill_match_percentage"`
+}
