@@ -74,8 +74,8 @@ func (s *Server) setupRouter() {
 			jobSeeker.GET("/applications", s.applicationHandler.List)
 		}
 
-		// Common routes
-		auth.PUT("/users/profile", s.userHandler.UpdateProfile)
+		auth.PUT("/users/profile", s.userHandler.UpdateProfileDetails)
+		auth.PUT("/users/employment-history", s.userHandler.UpdateEmploymentHistory)
 	}
 }
 

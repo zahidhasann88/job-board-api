@@ -22,24 +22,23 @@ type JobRepository interface {
 
 type UserRepository interface {
 	Create(ctx context.Context, user *domain.User) error
-	Update(ctx context.Context, user *domain.User) error
-	Delete(ctx context.Context, id uuid.UUID) error
 	GetByID(ctx context.Context, id uuid.UUID) (*domain.User, error)
 	GetByEmail(ctx context.Context, email string) (*domain.User, error)
+	Update(ctx context.Context, user *domain.User) error
+	Delete(ctx context.Context, id uuid.UUID) error
 
-	// UpdateSkills(ctx context.Context, userID uuid.UUID, skills []string) error
-	// UpdateExperience(ctx context.Context, userID uuid.UUID, experience string) error
-	// UpdateEducation(ctx context.Context, userID uuid.UUID, education string) error
-	// UpdateBio(ctx context.Context, userID uuid.UUID, bio string) error
-	// UpdateProfilePicture(ctx context.Context, userID uuid.UUID, url string) error
-	// UpdateResume(ctx context.Context, userID uuid.UUID, url string) error
-	// UpdateLocation(ctx context.Context, userID uuid.UUID, location string) error
-	// UpdateSocialLinks(ctx context.Context, userID uuid.UUID, links domain.SocialLinks) error
-	// UpdateContactInfo(ctx context.Context, userID uuid.UUID, contactInfo domain.ContactInfo) error
-	// UpdateEmploymentHistory(ctx context.Context, userID uuid.UUID, employmentHistory []domain.EmploymentHistory) error
-	// UpdateEducationHistory(ctx context.Context, userID uuid.UUID, educationHistory []domain.EducationHistory) error
-	// UpdateCertifications(ctx context.Context, userID uuid.UUID, certifications []domain.Certification) error
-	// GetUserAnalytics(ctx context.Context, userID uuid.UUID) (*domain.UserAnalytics, error)
+	// Profile-specific methods
+	UpdateProfileDetails(ctx context.Context, userID uuid.UUID, updates map[string]interface{}) error
+	CalculateProfileCompleteness(ctx context.Context, userID uuid.UUID) (float64, error)
+
+	// Detailed history methods
+	UpdateEmploymentHistory(ctx context.Context, userID uuid.UUID, history []domain.EmploymentHistory) error
+	UpdateEducationHistory(ctx context.Context, userID uuid.UUID, history []domain.EducationHistory) error
+	UpdateCertifications(ctx context.Context, userID uuid.UUID, certifications []domain.Certification) error
+
+	// Analytics
+	GetUserAnalytics(ctx context.Context, userID uuid.UUID) (*domain.UserAnalytics, error)
+	IncrementProfileView(ctx context.Context, userID uuid.UUID) error
 }
 
 type ApplicationRepository interface {

@@ -275,31 +275,3 @@ func getRoleErrorMessage(err validator.FieldError, role UserRole) string {
 		return getErrorMessage(err)
 	}
 }
-
-// Example structs showing usage
-type JobPosting struct {
-	ID              string `json:"id" validate:"required,uuid"`
-	Title           string `json:"title" validate:"required"`
-	CompanyID       string `json:"company_id" validate:"required,uuid,same_company"`
-	SalaryRange     string `json:"salary_range" validate:"required,salary_range,recruiter_only"`
-	FeaturedListing bool   `json:"featured_listing" validate:"admin_only"`
-	JobType         string `json:"job_type" validate:"required,job_type"`
-	ExperienceLevel string `json:"experience_level" validate:"required,experience_level"`
-}
-
-type UserProfile struct {
-	ID          string `json:"id" validate:"required,uuid,same_user"`
-	Name        string `json:"name" validate:"required"`
-	Email       string `json:"email" validate:"required,email"`
-	Role        string `json:"role" validate:"admin_only"`
-	PhoneNumber string `json:"phone_number" validate:"required,phone"`
-	Password    string `json:"password" validate:"required,password"`
-}
-
-type JobApplication struct {
-	ID          string `json:"id" validate:"required,uuid"`
-	JobID       string `json:"job_id" validate:"required,uuid"`
-	ApplicantID string `json:"applicant_id" validate:"required,uuid,same_user"`
-	Status      string `json:"status" validate:"required,application_status,recruiter_only"`
-	ResumeURL   string `json:"resume_url" validate:"required,url"`
-}
