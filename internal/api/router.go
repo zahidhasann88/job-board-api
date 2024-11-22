@@ -1,7 +1,12 @@
 package api
 
 import (
+	"time"
+
 	"github.com/gin-gonic/gin"
+	"github.com/ulule/limiter/v3"
+	mgin "github.com/ulule/limiter/v3/drivers/middleware/gin"
+	memory "github.com/ulule/limiter/v3/drivers/store/memory"
 	"github.com/zahidhasann88/job-board-api/internal/api/handler"
 	"github.com/zahidhasann88/job-board-api/internal/api/middleware"
 	"github.com/zahidhasann88/job-board-api/internal/config"
@@ -41,6 +46,18 @@ func (s *Server) setupRouter() {
 	// Middleware
 	s.router.Use(middleware.LoggingMiddleware(s.logger))
 	s.router.Use(gin.Recovery())
+
+	// Rate Limiter Setup
+	rate := limiter.Rate{
+		Period: 1 * time.Minute,
+		Limit:  int64(s.config.RateLimitRequestsPerMinute),
+	}
+	store := memory.NewStore()
+	limiterInstance := limiter.New(store, rate)
+	rateLimiterMiddleware := mgin.NewMiddleware(limiterInstance)
+
+	// Apply rate limiter to all routes
+	s.router.Use(rateLimiterMiddleware)
 
 	// Public routes
 	s.router.POST("/api/v1/users/register", s.userHandler.Register)

@@ -1,8 +1,11 @@
 package validator
 
 import (
+	"errors"
 	"fmt"
+	"net/url"
 	"regexp"
+	"strconv"
 	"strings"
 
 	"github.com/go-playground/validator/v10"
@@ -232,6 +235,51 @@ func toSnakeCase(str string) string {
 		result.WriteRune(r)
 	}
 	return strings.ToLower(result.String())
+}
+
+func ValidatePort(port string) error {
+	// Predefined whitelist of allowed ports
+	allowedPorts := map[int]bool{
+		8080:  true, // Development default
+		3000:  true, // React default
+		5000:  true, // Flask/Express default
+		4000:  true, // Next.js default
+		443:   true, // HTTPS standard
+		80:    true, // HTTP standard
+		5432:  true, // PostgreSQL standard
+		6379:  true, // Redis standard
+		27017: true, // MongoDB standard
+	}
+
+	// Try parsing the port
+	portNum, err := strconv.Atoi(port)
+	if err != nil {
+		return errors.New("invalid port number")
+	}
+
+	// Check against whitelist
+	if !allowedPorts[portNum] {
+		return errors.New("port not in whitelist")
+	}
+
+	return nil
+}
+
+func ValidateDatabaseURL(dbURL string) error {
+	// Parse the database URL
+	parsedURL, err := url.Parse(dbURL)
+	if err != nil {
+		return errors.New("invalid database URL")
+	}
+
+	// Extract port from URL
+	portStr := parsedURL.Port()
+	if portStr == "" {
+		portStr = "5432" // Default PostgreSQL port
+	}
+
+	// Validate port
+	return ValidatePort(portStr)
 }
 
 func getErrorMessage(err validator.FieldError) string {
